@@ -1,3 +1,18 @@
+Mutation test workflow proof-of-concept for TinyXML-2
+======================================================
+This fork adds proof-of-concept (PoF) mutation test CI workflows to the TinyXML-2 project.
+The PoF consists of two workflows; one worfklow using Dextool to mutate git diff of C++ files on new push, and one 
+workflow containing two jobs mutating the entire project with either Dextool or Mull.
+
+The two workflows can be found under [/.github/workflows](/.github/workflows), Dextool settings under 
+[.dextool_mutate.toml](/.dextool_mutate.toml), and Mull settings under [mull.yml](/mull.yml).
+
+Setup
+----
+The workflows have been tested on the Ubuntu 20.04 docker image, see 
+[GitHub Docs: Add self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/adding-self-hosted-runners)
+for how to add a runner.
+
 TinyXML-2
 =========
 

@@ -3,6 +3,7 @@ project(tinyxml2 VERSION 9.0.0)
 
 include(CTest)
 option(tinyxml2_BUILD_TESTING "Build tests for tinyxml2" "${BUILD_TESTING}")
+option(MUTATION_TESTING "Mutation tests for tinyxml2" "${MUTATION_TESTING}")
 
 ##
 ## Honor tinyxml2_SHARED_LIBS to match install interface
@@ -52,6 +53,15 @@ if (tinyxml2_BUILD_TESTING)
     )
 
     set_tests_properties(xmltest PROPERTIES PASS_REGULAR_EXPRESSION ", Fail 0")
+endif ()
+
+if (MUTATION_TESTING)
+    # add_compile_options("-O0;-fexperimental-new-pass-manager;-fpass-plugin=/usr/lib/mull-ir-frontend-12;-g;-grecord-command-line;-fprofile-instr-generate;-fcoverage-mapping")
+    # cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_DEBUG_POSTFIX=d -DBUILD_SHARED_LIBS=ON -DMUTATION_TESTING=ON
+    # cmake --build build -j 16
+    # mull-runner-12 --include-not-covered --ld-search-path=/usr/lib/x86_64-linux-gnu --ld-search-path=./build/ --reporters=Patches --reporters=Elements --reporters=IDE ./build/xmltest
+    SET(CMAKE_CXX_FLAGS "-fexperimental-new-pass-manager -fpass-plugin=/usr/lib/mull-ir-frontend-12 -g -grecord-command-line -fprofile-instr-generate -fcoverage-mapping")
+    # SET(CMAKE_CXX_FLAGS "--coverage -fprofile-arcs -ftest-coverage")
 endif ()
 
 ##

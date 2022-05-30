@@ -1,0 +1,130 @@
+name: Commit Mutation Workflow
+on: [ push, pull_request, workflow_dispatch ]
+jobs:
+  test:
+    name: Unit Test
+    # if: ${{ false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04 ]
+        cmake: [ 3.16.3 ] # [ 3.x ] for latest
+        include:
+          - os: ubuntu-20.04
+            tree: tree
+          - cmake: 3.16.3 # 3.x for latest
+            cmake_name: CMake 3.16.3
+    runs-on: ${{ matrix.os }}
+    steps:
+      # System set-up
+      - uses: actions/checkout@v2
+      - name: Install Clang
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: 12
+          platform: x64
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: seanmiddleditch/gha-setup-ninja@master
+      - uses: jwlawson/actions-setup-cmake@v1.8
+        with:
+          cmake-version: ${{ matrix.cmake }}
+
+      # Shared Release Test
+      - name: "Shared Release: Configure"
+        run: cmake -G Ninja -S . -B build-shared-rel -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
+      - name: "Shared Release: Build"
+        run: cmake --build build-shared-rel -j 16
+      - name: "Shared Release: Test"
+        run: ctest --output-on-failure
+        working-directory: build-shared-rel
+
+      # Install
+      - name: Install
+        run: cmake --install build-shared-rel --prefix install
+      - name: List install tree
+        run: ${{matrix.tree}} install
+
+      # Test find_package
+      - name: "Test find_package: Shared Release"
+        run: >-
+          ctest --build-and-test test test-shared-rel
+          --build-generator Ninja
+          --build-options -DCMAKE_BUILD_TYPE=Release -Dtinyxml2_SHARED_LIBS=YES -DCMAKE_PREFIX_PATH=${{github.workspace}}/install
+          --test-command ctest --output-on-failure
+  dextool:
+    name: "Dextool Mutation Test"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04 ]
+        cmake: [ 3.16.3 ]
+        include:
+          - os: ubuntu-20.04
+            tree: tree
+          - cmake: 3.16.3
+            cmake_name: CMake 3.16.3
+    env:
+      LDC_VERSION: 1.27.1
+      DC: ldc2
+    runs-on: self-hosted # ${{ matrix.os }} to run on GitHub hosted machine, extremely slow
+    steps:
+      # System set-up
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Fetch all history
+      - name: "Install Clang action dependencies"
+        run: |
+          apt-get install -y wget apt-transport-https software-properties-common
+          wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+          dpkg -i packages-microsoft-prod.deb
+          apt-get update
+          apt-get install -y powershell sudo
+      - name: "Install Clang"
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: 12
+          platform: x64
+      - name: "Install MSVC"
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: "Install Ninja"
+        uses: seanmiddleditch/gha-setup-ninja@master
+      - name: "Install CMake"
+        uses: jwlawson/actions-setup-cmake@v1.12
+        with:
+          cmake-version: ${{ matrix.cmake }}
+      - name: "Install JFrog-CLI"
+        uses: jfrog/setup-jfrog-cli@v2
+        env:
+          JF_ENV_1: ${{ secrets.Artifactory_secret }}
+      - name: "Install Dextool"
+        run: |
+          apt-get -y install ca-certificates git sqlite3 libsqlite3-dev make cmake ninja-build llvm-12 llvm-12-dev libllvm12 clang-12 libclang-12-dev libclang1-12 curl xz-utils gnupg2 zip
+          curl -fsS https://dlang.org/install.sh | sed -e 's/--connect-timeout 5/--connect-timeout 20/g' | bash -s ldc-$LDC_VERSION
+          git clone --depth 1 https://github.com/joakim-brannstrom/dextool.git
+          cd dextool
+          mkdir -p build
+          cd build
+          source ~/dlang/ldc-1.27.1/activate
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/dextool_install
+          make all VERBOSE=1
+          make install VERBOSE=1
+      # Shared Release Dextool Mutation Test
+      - name: "Shared Release: Configure"
+        run: cmake -G Ninja -S . -B dextool-shared-rel -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: "Dextool analyze"
+        run: |
+          mkdir -p Dextool
+          git diff HEAD^..HEAD | /opt/dextool_install/bin/dextool mutate analyze --diff-from-stdin
+        # git diff a953b9565da17675f36223d6ebc0b815eb3de403..HEAD | /opt/dextool_install/bin/dextool mutate analyze --diff-from-stdin
+      - name: "Dextool test"
+        run: git diff HEAD^..HEAD | /opt/dextool_install/bin/dextool mutate test --diff-from-stdin
+        # git diff a953b9565da17675f36223d6ebc0b815eb3de403..HEAD | /opt/dextool_install/bin/dextool mutate test --diff-from-stdin
+      - name: "Dextool report"
+        run: git diff HEAD^..HEAD | /opt/dextool_install/bin/dextool mutate report --logdir=/Dextool --diff-from-stdin
+        # git diff a953b9565da17675f36223d6ebc0b815eb3de403..HEAD | /opt/dextool_install/bin/dextool mutate report --logdir=/Dextool --diff-from-stdin
+      - name: "Upload Dextool artifacts"
+        run: |
+          zip -r Dextool.zip Dextool
+          jf rt u Dextool.zip mutation_results/TinyXML2/Dextool/${{github.ref_name}}/${{github.sha}}/`date +%s`.zip
+        # jf rt u "./Dextool/*.sqlite3" mutation_results/TinyXML2/Dextool/${{github.ref_name}}/${{github.sha}}/`date +%s`.sqllite3
