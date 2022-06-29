@@ -1,8 +1,9 @@
 name: Mutation Workflow
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: 0 4 * * 6 # Every Saturday at 0400
+  workflow_dispatch
+  #workflow_dispatch:
+  #schedule:
+  #  - cron: 0 4 * * 6 # Every Saturday at 0400
 
 jobs:
   test:
