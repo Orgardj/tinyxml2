@@ -3,7 +3,6 @@ on: [ push, pull_request, workflow_dispatch ]
 jobs:
   test:
     name: Unit Test
-    # if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
@@ -116,15 +115,11 @@ jobs:
         run: |
           mkdir -p Dextool
           git diff HEAD^..HEAD | /opt/dextool_install/bin/dextool mutate analyze --diff-from-stdin
-        # git diff a953b9565da17675f36223d6ebc0b815eb3de403..HEAD | /opt/dextool_install/bin/dextool mutate analyze --diff-from-stdin
       - name: "Dextool test"
         run: git diff HEAD^..HEAD | /opt/dextool_install/bin/dextool mutate test --diff-from-stdin
-        # git diff a953b9565da17675f36223d6ebc0b815eb3de403..HEAD | /opt/dextool_install/bin/dextool mutate test --diff-from-stdin
       - name: "Dextool report"
         run: git diff HEAD^..HEAD | /opt/dextool_install/bin/dextool mutate report --logdir=/Dextool --diff-from-stdin
-        # git diff a953b9565da17675f36223d6ebc0b815eb3de403..HEAD | /opt/dextool_install/bin/dextool mutate report --logdir=/Dextool --diff-from-stdin
       - name: "Upload Dextool artifacts"
         run: |
           zip -r Dextool.zip Dextool
           jf rt u Dextool.zip mutation_results/TinyXML2/Dextool/${{github.ref_name}}/${{github.sha}}/`date +%s`.zip
-        # jf rt u "./Dextool/*.sqlite3" mutation_results/TinyXML2/Dextool/${{github.ref_name}}/${{github.sha}}/`date +%s`.sqllite3

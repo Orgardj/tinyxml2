@@ -1,17 +1,37 @@
 Mutation test workflow proof-of-concept for TinyXML-2
 ======================================================
-This fork adds proof-of-concept (PoF) mutation test CI workflows to the TinyXML-2 project.
+[![Mutation Workflow](https://github.com/Orgardj/tinyxml2/actions/workflows/full_test.yml/badge.svg)](https://github.com/Orgardj/tinyxml2/actions/workflows/full_test.yml)
+[![Commit Mutation Workflow](https://github.com/Orgardj/tinyxml2/actions/workflows/commit_test.yml/badge.svg)](https://github.com/Orgardj/tinyxml2/actions/workflows/commit_test.yml)
+
+This fork adds proof-of-concept (PoF) mutation test CI workflows to the TinyXML-2 project. These were used in the master
+thesis [Recommendations for Mutation Testing as Part of a Continuous Integration Pipeline: With a focus on C++](https://hdl.handle.net/20.500.12380/305137)
+.
 The PoF consists of two workflows; one worfklow using Dextool to mutate git diff of C++ files on new push, and one 
-workflow containing two jobs mutating the entire project with either Dextool or Mull.
+workflow containing two jobs mutating the entire project with Dextool and Mull.
 
 The two workflows can be found under [/.github/workflows](/.github/workflows), Dextool settings under 
 [.dextool_mutate.toml](/.dextool_mutate.toml), and Mull settings under [mull.yml](/mull.yml).
 
 Setup
 ----
-The workflows have been tested on the Ubuntu 20.04 docker image, see 
+Collaborator access is required to run the workflows or add runners. The workflows have been tested on the Ubuntu focal
+(20.04) docker image. 
+
+To try the workflows your self:
+1. Fork the repository
+2. Add a self-hosted runner to run the workflow as explain in
 [GitHub Docs: Add self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/adding-self-hosted-runners)
-for how to add a runner.
+. GitHub hosted runners can be used but are not recommended, since it would be extremely slow.
+3. Add an Artifactory to upload the results to. To do this generate a single config token as explain in 
+[JFrog CLI Action Docs: Storing the connection details using single Config Token](https://github.com/marketplace/actions/setup-jfrog-cli#storing-the-connection-details-using-single-config-token)
+. Then add a repository secret called `ARTIFACTORY_SECRET` as explained in 
+[GitHub Docs: Creating encrypted secrets for a repository](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository)
+.
+4. The full workflow is started manually in the action tab on GitHub (can be set to run on a timer by uncommenting the 
+lines schedule lines). The commit workflow mutating the git diff between the 2 latest commits is triggered on push, on 
+pull request or manually.
+
+
 
 TinyXML-2
 =========

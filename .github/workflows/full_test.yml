@@ -120,7 +120,6 @@ jobs:
         run: |
           zip -r Mull.zip Mull
           jf rt u Mull.zip mutation_results/TinyXML2/Mull/${{github.ref_name}}/full/`date +%s`.zip
-        # jf rt u "./Mull/*(.sqlite|.json)" mutation_results/TinyXML2/${{github.ref_name}}/full/`date +%s`.zip
   dextool:
     name: "Dextool Mutation Test"
     strategy:
@@ -192,4 +191,3 @@ jobs:
         run: |
           zip -r Dextool.zip Dextool
           jf rt u Dextool.zip mutation_results/TinyXML2/Dextool/${{github.ref_name}}/full/`date +%s`.zip
-        # jf rt u "./Dextool/*.sqlite3" mutation_results/TinyXML2/Dextool/${{github.ref_name}}/full/`date +%s`.sqllite3
